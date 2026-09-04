@@ -1,4 +1,3 @@
-
 LIBRARY IEEE;
 USE IEEE.STD_LOGIC_1164.ALL;
 USE IEEE.NUMERIC_STD.ALL;
@@ -65,12 +64,12 @@ ARCHITECTURE Behavioral OF TpgCtrlTop IS
     CONSTANT ADDR_HI : STD_LOGIC_VECTOR(11 DOWNTO 0) := X"00F";
 
     --addr[11:0]
-    CONSTANT Fun1_trig     : STD_LOGIC_VECTOR(11 DOWNTO 0) := X"001";
-    CONSTANT Fun1_H_Result : STD_LOGIC_VECTOR(11 DOWNTO 0) := X"002";
-    CONSTANT Fun1_L_Result : STD_LOGIC_VECTOR(11 DOWNTO 0) := X"003";
-    CONSTANT Fun2_trig     : STD_LOGIC_VECTOR(11 DOWNTO 0) := X"004";
-    CONSTANT Fun2_H_Result : STD_LOGIC_VECTOR(11 DOWNTO 0) := X"005";
-    CONSTANT Fun2_L_Result : STD_LOGIC_VECTOR(11 DOWNTO 0) := X"006";
+    CONSTANT M1_trig     : STD_LOGIC_VECTOR(11 DOWNTO 0) := X"001";
+    CONSTANT M1_H_Result : STD_LOGIC_VECTOR(11 DOWNTO 0) := X"002";
+    CONSTANT M1_L_Result : STD_LOGIC_VECTOR(11 DOWNTO 0) := X"003";
+    CONSTANT M2_trig     : STD_LOGIC_VECTOR(11 DOWNTO 0) := X"004";
+    CONSTANT M2_H_Result : STD_LOGIC_VECTOR(11 DOWNTO 0) := X"005";
+    CONSTANT M2_L_Result : STD_LOGIC_VECTOR(11 DOWNTO 0) := X"006";
 
     CONSTANT DATA_H_0 : STD_LOGIC_VECTOR(11 DOWNTO 0) := X"010";
     CONSTANT DATA_L_0 : STD_LOGIC_VECTOR(11 DOWNTO 0) := X"011";
@@ -92,31 +91,31 @@ ARCHITECTURE Behavioral OF TpgCtrlTop IS
     SIGNAL Addr_H : STD_LOGIC;
     SIGNAL Addr_l : STD_LOGIC_VECTOR(11 DOWNTO 0);
 
-    SIGNAL Fun1_en        : STD_LOGIC;
-    SIGNAL Fun1_cond      : STD_LOGIC;
-    SIGNAL Fun1_cond_prev : STD_LOGIC;
-    SIGNAL Fun2_en        : STD_LOGIC;
-    SIGNAL Fun2_cond      : STD_LOGIC;
-    SIGNAL Fun2_cond_prev : STD_LOGIC;
+    SIGNAL M1_en        : STD_LOGIC;
+    SIGNAL M1_cond      : STD_LOGIC;
+    SIGNAL M1_cond_prev : STD_LOGIC;
+    SIGNAL M2_en        : STD_LOGIC;
+    SIGNAL M2_cond      : STD_LOGIC;
+    SIGNAL M2_cond_prev : STD_LOGIC;
 
     SIGNAL DATA_H     : std_logic_bit16 (7 DOWNTO 0);
     SIGNAL DATA_L     : std_logic_bit16 (7 DOWNTO 0);
     SIGNAL Addr_Latch : STD_LOGIC_VECTOR (23 DOWNTO 0);
 
-    SIGNAL Fun1_H_sum, Fun1_L_sum : STD_LOGIC_VECTOR(18 DOWNTO 0);
-    SIGNAL Fun2_H_sum, Fun2_L_sum : STD_LOGIC_VECTOR(18 DOWNTO 0);
-    SIGNAL Fun1_Done, Fun2_Done   : STD_LOGIC;
+    SIGNAL M1_H_sum, M1_L_sum : STD_LOGIC_VECTOR(18 DOWNTO 0);
+    SIGNAL M2_H_sum, M2_L_sum : STD_LOGIC_VECTOR(18 DOWNTO 0);
+    SIGNAL M1_Done, M2_Done   : STD_LOGIC;
 
 BEGIN
     --Addr Flag
-    Addr_h <= '1' WHEN Addr(23 DOWNTO 12) = ADDR_HI ELSE
+    Addr_h <= '1' WHEN Addr_Latch(23 DOWNTO 12) = ADDR_HI ELSE
         '0';
-    Addr_l <= Addr(11 DOWNTO 0);
+    Addr_l <= Addr_Latch(11 DOWNTO 0);
 
     --Function Enable Flag
-    Fun1_cond <= '1' WHEN (Addr_h = '1' AND Addr_l = Fun1_trig AND WE = '1') ELSE
+    M1_cond <= '1' WHEN (Addr_h = '1' AND Addr_l = M1_trig AND IfWr = '1') ELSE
         '0';
-    Fun2_cond <= '1' WHEN (Addr_h = '1' AND Addr_l = Fun2_trig AND WE = '1') ELSE
+    M2_cond <= '1' WHEN (Addr_h = '1' AND Addr_l = M2_trig AND IfWr = '1') ELSE
         '0';
 
     -- addr latch
@@ -124,7 +123,7 @@ BEGIN
     BEGIN
         IF nRst = '0' THEN
             Addr_Latch <= (OTHERS => '0');
-        ELSIF rising_clk(IfClk) THEN
+        ELSIF rising_edge(IfClk) THEN
             IF IfAle = '1' THEN
                 Addr_Latch <= IfData;
             END IF;
@@ -135,18 +134,18 @@ BEGIN
     PROCESS (IfClk, nRST)
     BEGIN
         IF nRST = '0' THEN
-            Fun1_cond_prev <= '0';
-            Fun1_en        <= '0';
+            M1_cond_prev <= '0';
+            M1_en        <= '0';
 
-            Fun2_cond_prev <= '0';
-            Fun2_en        <= '0';
+            M2_cond_prev <= '0';
+            M2_en        <= '0';
 
-        ELSIF rising_clk(IfClk) THEN
-            Fun1_cond_prev <= Fun1_cond;
-            Fun1_en        <= Fun1_cond AND NOT Fun1_cond_prev;
+        ELSIF rising_edge(IfClk) THEN
+            M1_cond_prev <= M1_cond;
+            M1_en        <= M1_cond AND NOT M1_cond_prev;
 
-            Fun2_cond_prev <= Fun2_cond;
-            Fun2_en        <= Fun2_cond AND NOT Fun2_cond_prev;
+            M2_cond_prev <= M2_cond;
+            M2_en        <= M2_cond AND NOT M2_cond_prev;
         END IF;
     END PROCESS;
 
@@ -157,68 +156,68 @@ BEGIN
             DATA_L <= (OTHERS => (OTHERS => '0'));
 
         ELSIF rising_edge(IfClk) THEN
-            IF Addr_h = '1' AND We = '1' THEN
+            IF Addr_h = '1' AND IfWr = '1' THEN
                 CASE(Addr_l) IS
-                    WHEN DATA_H_0 => DATA_H(0) <= Data_In;
-                    WHEN DATA_L_0 => DATA_L(0) <= Data_In;
-                    WHEN DATA_H_1 => DATA_H(1) <= Data_In;
-                    WHEN DATA_L_1 => DATA_L(1) <= Data_In;
-                    WHEN DATA_H_2 => DATA_H(2) <= Data_In;
-                    WHEN DATA_L_2 => DATA_L(2) <= Data_In;
-                    WHEN DATA_H_3 => DATA_H(3) <= Data_In;
-                    WHEN DATA_L_3 => DATA_L(3) <= Data_In;
-                    WHEN DATA_H_4 => DATA_H(4) <= Data_In;
-                    WHEN DATA_L_4 => DATA_L(4) <= Data_In;
-                    WHEN DATA_H_5 => DATA_H(5) <= Data_In;
-                    WHEN DATA_L_5 => DATA_L(5) <= Data_In;
-                    WHEN DATA_H_6 => DATA_H(6) <= Data_In;
-                    WHEN DATA_L_6 => DATA_L(6) <= Data_In;
-                    WHEN DATA_H_7 => DATA_H(7) <= Data_In;
-                    WHEN DATA_L_7 => DATA_L(7) <= Data_In;
+                    WHEN DATA_H_0 => DATA_H(0) <= IfData;
+                    WHEN DATA_L_0 => DATA_L(0) <= IfData;
+                    WHEN DATA_H_1 => DATA_H(1) <= IfData;
+                    WHEN DATA_L_1 => DATA_L(1) <= IfData;
+                    WHEN DATA_H_2 => DATA_H(2) <= IfData;
+                    WHEN DATA_L_2 => DATA_L(2) <= IfData;
+                    WHEN DATA_H_3 => DATA_H(3) <= IfData;
+                    WHEN DATA_L_3 => DATA_L(3) <= IfData;
+                    WHEN DATA_H_4 => DATA_H(4) <= IfData;
+                    WHEN DATA_L_4 => DATA_L(4) <= IfData;
+                    WHEN DATA_H_5 => DATA_H(5) <= IfData;
+                    WHEN DATA_L_5 => DATA_L(5) <= IfData;
+                    WHEN DATA_H_6 => DATA_H(6) <= IfData;
+                    WHEN DATA_L_6 => DATA_L(6) <= IfData;
+                    WHEN DATA_H_7 => DATA_H(7) <= IfData;
+                    WHEN DATA_L_7 => DATA_L(7) <= IfData;
                     WHEN OTHERS   => NULL;
                 END CASE;
             END IF;
         END IF;
     END PROCESS;
+
     -- READ
-    PROCESS (Addr_h, Addr_l, Re, Fun1_H_sum, Fun1_L_sum, Fun2_H_sum, Fun2_L_sum)
+    PROCESS (Addr_h, Addr_l, IfRd, M1_H_sum, M1_L_sum, M2_H_sum, M2_L_sum)
     BEGIN
+        IfData <= (OTHERS => 'Z');
 
-        Data_OUT <= (OTHERS => 'Z');
-
-        IF Addr_h = '1' AND RE = '1' THEN
+        IF Addr_h = '1' AND IfRd = '1' THEN
             CASE(Addr_L) IS
-                WHEN Fun1_H_Result => Data_OUT <= Fun1_H_sum;
-                WHEN Fun1_L_Result => Data_OUT <= Fun1_L_sum;
-                WHEN Fun2_H_Result => Data_OUT <= Fun2_H_sum;
-                WHEN Fun2_L_Result => Data_OUT <= Fun2_L_sum;
-                WHEN OTHERS        => NULL;
+                WHEN M1_H_Result => IfData <= "00000" & M1_H_sum;
+                WHEN M1_L_Result => IfData <= "00000" & M1_L_sum;
+                WHEN M2_H_Result => IfData <= "00000" & M2_H_sum;
+                WHEN M2_L_Result => IfData <= "00000" & M2_L_sum;
+                WHEN OTHERS => IfData      <= (OTHERS => 'Z');
             END CASE;
         END IF;
     END PROCESS;
 
-    Module1 : Module1
+    Module1_inst : Module1
     PORT MAP(
-        CLK    => CLK,
+        CLK    => SysClK,
         nRST   => nRST,
-        En     => Fun1_en,
+        En     => M1_en,
         H_data => DATA_H,
         L_data => DATA_L,
-        H_sum  => Fun1_H_sum,
-        L_sum  => Fun1_L_sum,
-        Done   => Fun1_Done
+        H_sum  => M1_H_sum,
+        L_sum  => M1_L_sum,
+        Done   => M1_Done
     );
 
-    Module2 : Module2
+    Module2_inst : Module2
     PORT MAP(
-        CLK    => CLK,
+        CLK    => SysClK,
         nRST   => nRST,
-        En     => Fun1_en,
+        En     => M2_en,
         H_data => DATA_H,
         L_data => DATA_L,
-        H_sum  => Fun1_H_sum,
-        L_sum  => Fun1_L_sum,
-        Done   => Fun1_Done
+        H_sum  => M2_H_sum,
+        L_sum  => M2_L_sum,
+        Done   => M2_Done
     );
 
 END Behavioral;
