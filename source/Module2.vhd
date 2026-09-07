@@ -29,44 +29,38 @@ ENTITY Module2 IS
 END Module2;
 
 ARCHITECTURE Behavioral OF Module2 IS
+    -- 1/FF
+    SIGNAL H_REG : std_logic_bit16 (DATA_DEPTH - 1 DOWNTO 0);
+    SIGNAL L_REG : std_logic_bit16 (DATA_DEPTH - 1 DOWNTO 0);
 
-    SIGNAL En_D    : STD_LOGIC;
-    SIGNAL En_D_1D : STD_LOGIC;
-    SIGNAL H_REG   : std_logic_bit16 (DATA_DEPTH - 1 DOWNTO 0);
-    SIGNAL L_REG   : std_logic_bit16 (DATA_DEPTH - 1 DOWNTO 0);
-
-    SIGNAL H_SUM_TEMP : STD_LOGIC_VECTOR(18 DOWNTO 0);
-    SIGNAL L_SUM_TEMP : STD_LOGIC_VECTOR(18 DOWNTO 0);
-
-    SIGNAL H_SUM_TEMP2    : STD_LOGIC_VECTOR(18 DOWNTO 0);
-    SIGNAL L_SUM_TEMP2    : STD_LOGIC_VECTOR(18 DOWNTO 0);
+    -- 2/FF
     SIGNAL H_SUM_TEMP2_D1 : STD_LOGIC_VECTOR(18 DOWNTO 0);
     SIGNAL L_SUM_TEMP2_D1 : STD_LOGIC_VECTOR(18 DOWNTO 0);
+
+    SIGNAL En_D    : STD_LOGIC;
+    SIGNAL En_D_D1 : STD_LOGIC;
+
+    SIGNAL H_SUM_TEMP  : STD_LOGIC_VECTOR(18 DOWNTO 0);
+    SIGNAL L_SUM_TEMP  : STD_LOGIC_VECTOR(18 DOWNTO 0);
+    SIGNAL H_SUM_TEMP2 : STD_LOGIC_VECTOR(18 DOWNTO 0);
+    SIGNAL L_SUM_TEMP2 : STD_LOGIC_VECTOR(18 DOWNTO 0);
 BEGIN
 
     PROCESS (CLK, nRST)
     BEGIN
         IF nRST = '0' THEN
+            En_D  <= '0';
             H_REG <= ((OTHERS => ((OTHERS => '0'))));
             L_REG <= ((OTHERS => ((OTHERS => '0'))));
-
-            H_sum_1D <= ((OTHERS => '0'));
-            L_sum_1D <= ((OTHERS => '0'));
-
         ELSIF rising_edge(CLK) THEN
             En_D <= En;
 
-            H_SUM_TEMP2_D1 <= H_SUM_TEMP2;
-            L_SUM_TEMP2_D1 <= L_SUM_TEMP2;
-
             IF En = '1' THEN
-                H_REG <= H_dta;
+                H_REG <= H_data;
                 L_REG <= L_data;
             END IF;
         END IF;
     END PROCESS;
-    Done <= En_D;
-
     H_SUM_TEMP <= STD_LOGIC_VECTOR(
         RESIZE(UNSIGNED(H_REG(0)), 19) +
         RESIZE(UNSIGNED(H_REG(1)), 19) +
@@ -96,7 +90,21 @@ BEGIN
 
     L_SUM_TEMP2 <= "000" & L_SUM_TEMP(15 DOWNTO 0);
 
+    PROCESS (CLk, nRST)
+    BEGIN
+        IF nRST = '0' THEN
+            En_D_D1        <= '0';
+            H_SUM_TEMP2_D1 <= (OTHERS => '0');
+            L_SUM_TEMP2_D1 <= (OTHERS => '0');
+        ELSIF rising_edge(CLK) THEN
+            En_D_D1        <= En_D;
+            H_SUM_TEMP2_D1 <= H_SUM_TEMP2;
+            L_SUM_TEMP2_D1 <= L_SUM_TEMP2;
+        END IF;
+    END PROCESS;
+
+    Done  <= En_D_D1;
     H_sum <= H_SUM_TEMP2_D1;
     L_sum <= L_SUM_TEMP2_D1;
-    
+
 END Behavioral;
