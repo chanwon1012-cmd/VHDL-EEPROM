@@ -16,7 +16,7 @@ ENTITY TpgCtrlTop IS
         IfWr   : IN STD_LOGIC;
         IfData : INOUT STD_LOGIC_VECTOR(23 DOWNTO 0)
 
-        -- EEPROM (??? ?? ??)
+        -- EEPROM
     );
 END TpgCtrlTop;
 
@@ -92,9 +92,13 @@ ARCHITECTURE Behavioral OF TpgCtrlTop IS
     SIGNAL Addr_l : STD_LOGIC_VECTOR(11 DOWNTO 0);
 
     SIGNAL M1_en        : STD_LOGIC;
+    SIGNAL M1_en_d1     : STD_LOGIC;
+    SIGNAL M1_en_sync   : STD_LOGIC;
     SIGNAL M1_cond      : STD_LOGIC;
     SIGNAL M1_cond_prev : STD_LOGIC;
     SIGNAL M2_en        : STD_LOGIC;
+    SIGNAL M2_en_d1     : STD_LOGIC;
+    SIGNAL M2_en_sync   : STD_LOGIC;
     SIGNAL M2_cond      : STD_LOGIC;
     SIGNAL M2_cond_prev : STD_LOGIC;
 
@@ -136,16 +140,31 @@ BEGIN
         IF nRST = '0' THEN
             M1_cond_prev <= '0';
             M1_en        <= '0';
-
             M2_cond_prev <= '0';
             M2_en        <= '0';
 
         ELSIF rising_edge(IfClk) THEN
             M1_cond_prev <= M1_cond;
             M1_en        <= M1_cond AND NOT M1_cond_prev;
-
             M2_cond_prev <= M2_cond;
             M2_en        <= M2_cond AND NOT M2_cond_prev;
+        END IF;
+    END PROCESS;
+
+    PROCESS (SysClk, nRST)
+    BEGIN
+        IF nRST = '0' THEN
+            M1_en_d1   <= '0';
+            M2_en_d1   <= '0';
+            M1_en_sync <= '0';
+            M2_en_sync <= '0';
+
+        ELSIF rising_edge(SysClK) THEN
+            M1_en_d1   <= M1_en;
+            M1_en_sync <= M1_en_d1;
+
+            M2_en_d1   <= M2_en;
+            M2_en_sync <= M2_en_d1;
         END IF;
     END PROCESS;
 
@@ -200,7 +219,7 @@ BEGIN
     PORT MAP(
         CLK    => SysClK,
         nRST   => nRST,
-        En     => M1_en,
+        En     => M1_en_sync,
         H_data => DATA_H,
         L_data => DATA_L,
         H_sum  => M1_H_sum,
@@ -212,12 +231,11 @@ BEGIN
     PORT MAP(
         CLK    => SysClK,
         nRST   => nRST,
-        En     => M2_en,
+        En     => M2_en_sync,
         H_data => DATA_H,
         L_data => DATA_L,
         H_sum  => M2_H_sum,
         L_sum  => M2_L_sum,
         Done   => M2_Done
     );
-
 END Behavioral;
