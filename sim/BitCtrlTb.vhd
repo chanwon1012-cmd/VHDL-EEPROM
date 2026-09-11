@@ -19,16 +19,9 @@
 ----------------------------------------------------------------------------------
 LIBRARY IEEE;
 USE IEEE.STD_LOGIC_1164.ALL;
+USE IEEE.NUMERIC_STD.ALL;
 
--- Uncomment the following library declaration if using
--- arithmetic functions with Signed or Unsigned values
---use IEEE.NUMERIC_STD.ALL;
-
--- Uncomment the following library declaration if instantiating
--- any Xilinx leaf cells in this code.
---library UNISIM;
---use UNISIM.VComponents.all;
-
+USE work.array_def.ALL;
 ENTITY BitCtrlTb IS
     --  Port ( );
 END BitCtrlTb;
@@ -79,18 +72,42 @@ BEGIN
     Simulation : PROCESS
     BEGIN
         nRST <= '0';
-        WAIT FOR CLK_PERIOD * 5;
+        WAIT FOR CLK_PERIOD * 10;
         nRST <= '1';
         WAIT UNTIL rising_edge(SysClk);
 
         -- Test 1
+        BitStart <= '1';
+        DriveEn  <= '1';
+        TxBit    <= '0';
+        WAIT UNTIL rising_edge(SysClk);
+        BitStart <= '0';
+
+        DriveEn <= '0';
+        Sdain   <= '0';
+        WAIT UNTIL BitDone = '1';
+        WAIT UNTIL rising_edge(SysClk);
+
+        -- Test 2
+        I2CStart <= '1';
+        WAIT UNTIL rising_edge(SysClk);
+        I2cStart <= '0';
+        WAIT UNTIL BitDone = '1';
+        WAIT UNTIL rising_edge(SysClk);
+
         DriveEn  <= '1';
         TxBit    <= '1';
         BitStart <= '1';
         WAIT UNTIL rising_edge(SysClk);
         BitStart <= '0';
-
         WAIT UNTIL BitDone = '1';
         WAIT UNTIL rising_edge(SysClk);
+
+        I2cStop <= '1';
+        WAIT UNTIL rising_edge(SysClk);
+        I2cStop <= '1';
+        WAIT UNTIL BitDone = '1';
+        WAIT UNTIL rising_edge(SysClk);
+
     END PROCESS;
 END Behavioral;
