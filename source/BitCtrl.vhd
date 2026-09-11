@@ -16,7 +16,7 @@ USE work.array_def.ALL;
 
 ENTITY BitCtrl IS
     GENERIC (
-        T_LOW    : INTEGER := 65;
+        T_LOW    : INTEGER := 90;
         T_SETUP  : INTEGER := 5;
         T_HIGH   : INTEGER := 30;
         T_HD_STA : INTEGER := 30;
