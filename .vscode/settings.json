@@ -1,0 +1,8 @@
+{
+    "vhdl.formatter.align.all": true,
+    "vhdl.formatter.align.mode": "Global",
+    "vhdl.formatter.align.port": true,
+    "vhdl.formatter.align.generic": true,
+    "vhdl.formatter.align.function": true,
+    "vhdl.formatter.align.procedure": true
+}

@@ -73,14 +73,38 @@ BEGIN
         ByteStart <= '0';
 
         -- 1bit Shift Tx
+
+        -- ByteDataShift : FOR i IN 0 TO 8 LOOP
+        --     WAIT UNTIL rising_edge(SysClk) AND BitStart = '1';
+        --     WAIT FOR CLK_PERIOD * 5 + CLK_PERIOD / 4;
+        --     IF i = 8 THEN
+        --         SdaLatch <= '1';
+        --     ELSE
+        --         SdaLatch <= '0';
+        --     END IF;
+        --     BitDone <= '1';
+        --     WAIT UNTIL rising_edge(SysClk);
+        --     BitDone <= '0';
+        -- END LOOP; -- Byte Shift
+        -- WAIT;
+
         ByteDataShift : FOR i IN 0 TO 8 LOOP
-            WAIT UNTIL rising_edge(SysClk) AND BitStart = '1';
+            LOOP
+                WAIT UNTIL rising_edge(SysClk);
+                EXIT WHEN BitStart = '1';
+            END LOOP;
+
             WAIT FOR CLK_PERIOD * 5 + CLK_PERIOD / 4;
-            SdaLatch <= '0';
-            BitDone  <= '1';
+            IF i = 8 THEN
+                SdaLatch <= '1';
+            ELSE
+                SdaLatch <= '0';
+            END IF;
+            BitDone <= '1';
             WAIT UNTIL rising_edge(SysClk);
             BitDone <= '0';
         END LOOP; -- ByteDataShift
+        WAIT;
 
     END PROCESS;
 

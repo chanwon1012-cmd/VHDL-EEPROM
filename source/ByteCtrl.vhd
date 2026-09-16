@@ -1,10 +1,8 @@
 
-LIBRARY IEEE;
-USE IEEE.STD_LOGIC_1164.ALL;
-USE IEEE.NUMERIC_STD.ALL;
-
-USE work.array_def.ALL;
-
+library IEEE;
+use IEEE.STD_LOGIC_1164.all;
+use IEEE.NUMERIC_STD.all;
+use work.array_def.all;
 -- Uncomment the following library declaration if using
 -- arithmetic functions with Signed or Unsigned values
 --use IEEE.NUMERIC_STD.ALL;
@@ -14,120 +12,107 @@ USE work.array_def.ALL;
 --library UNISIM;
 --use UNISIM.VComponents.all;
 
-ENTITY ByteCtrl IS
-    PORT (
+entity ByteCtrl is
+    port
+    (
         -- Input
         -- System
-        SysClk : IN STD_LOGIC;
-        nRST   : IN STD_LOGIC;
+        SysClk    : in std_logic;
+        nRST      : in std_logic;
         -- I2c
-        ByteStart : IN STD_LOGIC;
-        rw        : IN STD_LOGIC;
-        WriteData : IN STD_LOGIC_VECTOR (7 DOWNTO 0);
+        ByteStart : in std_logic;
+        rw        : in std_logic;
+        WriteData : in std_logic_vector (7 downto 0);
         -- BitCtrl
-        BitDone  : IN STD_LOGIC;
-        SdaLatch : IN STD_LOGIC;
-
+        BitDone   : in std_logic;
+        SdaLatch  : in std_logic;
         -- Output
         -- I2c
-        ByteDone : OUT STD_LOGIC;
-        ReadData : OUT STD_LOGIC_VECTOR (7 DOWNTO 0);
-        Ack      : OUT STD_LOGIC;
+        ByteDone  : out std_logic;
+        ReadData  : out std_logic_vector (7 downto 0);
+        Ack       : out std_logic;
         -- BitCtrl
-        TxBit    : OUT STD_LOGIC;
-        BitStart : OUT STD_LOGIC;
-        DriveEn  : OUT STD_LOGIC
+        TxBit     : out std_logic;
+        BitStart  : out std_logic;
+        DriveEn   : out std_logic
     );
-END ByteCtrl;
-
-ARCHITECTURE Behavioral OF ByteCtrl IS
-    TYPE State IS (IDLE, LOAD, SHIFT_BIT, ACK_CHECK, DONE);
-    SIGNAL StateC, StateN : State;
-    SIGNAL DataReg        : STD_LOGIC_VECTOR (7 DOWNTO 0);
-    SIGNAL Cnt            : INTEGER RANGE 0 TO 7;
-
-BEGIN
+end ByteCtrl;
+architecture Behavioral of ByteCtrl is
+    type State is (IDLE, LOAD, SHIFT_BIT, SHIFT_BIT_WAIT, ACK_CHECK, DONE);
+    signal StateC, StateN : State;
+    signal DataReg        : std_logic_vector (7 downto 0);
+    signal Cnt            : integer range 0 to 8;
+begin
     -- Counter
-    PROCESS (SysClk, nRST)
-    BEGIN
-        IF nRST = '0' THEN
-            Cnt <= 7;
-        ELSIF Rising_edge(SysClk) THEN
-            IF StateC /= StateN THEN
-                Cnt <= 7;
-            ELSIF BitDone = '1' THEN
+    process (SysClk, nRST)
+    begin
+        if nRST = '0' then
+            Cnt <= 8;
+        elsif Rising_edge(SysClk) then
+            if StateC = LOAD then
+                Cnt <= 8;
+            elsif StateC = SHIFT_BIT and BitDone = '1' then
                 Cnt <= Cnt - 1;
-            END IF;
-        END IF;
-    END PROCESS;
-
+            end if;
+        end if;
+    end process;
     -- S Logic
-    PROCESS (SysClk, nRST)
-    BEGIN
-        IF nRST = '0' THEN
+    process (SysClk, nRST)
+    begin
+        if nRST = '0' then
             StateC <= IDLE;
-        ELSIF rising_edge(SysClk) THEN
+        elsif rising_edge(SysClk) then
             StateC <= StateN;
-        END IF;
-    END PROCESS;
-
+        end if;
+    end process;
     -- C Logic
-    PROCESS (StateC, rw, WriteData, SdaLatch, DataReg, ByteStart, BitDone, Cnt)
-    BEGIN
+    process (StateC, rw, WriteData, SdaLatch, DataReg, ByteStart, BitDone, Cnt)
+    begin
         StateN   <= StateC;
         ByteDone <= '0';
-        ReadData <= (others => '0');
         Ack      <= '0';
         TxBit    <= '0';
         BitStart <= '0';
         DriveEn  <= '0';
+        ReadData <= (others => '0');
+        case(StateC) is
 
-        CASE(StateC) IS
-
-            WHEN IDLE =>
-            IF ByteStart = '1' THEN
-                StateN <= LOAD;
-            ELSE
-                StateN <= IDLE;
-            END IF;
-
-            WHEN LOAD =>
+            when IDLE =>
+            if ByteStart = '1' then
+                StateN      <= LOAD;
+            else StateN <= IDLE;
+            end if;
+            when LOAD =>
             Bitstart <= '1';
-            DriveEn  <= NOT rw;
+            DriveEn  <= not rw;
             DataReg  <= WriteData;
             txBit    <= WriteData(7);
-
-            WHEN SHIFT_BIT =>
-            IF Cnt = 0 AND BitDone = '1' THEN
-                BitStart <= '1';
-                DataReg  <= DataReg(6 DOWNTO 0) & SdaLatch;
-                TxBit    <= DataReg(6);
-                DriveEn  <= rw;
-                StateN   <= ACK_CHECK;
-            ELSIF BitDone = '0' THEN
-                StateN <= SHIFT_BIT;
-            ELSE
-                BitStart <= '1';
-                DataReg  <= DataReg(6 DOWNTO 0) & SdaLatch;
-                TxBit    <= DataReg(6);
-                StateN   <= SHIFT_BIT;
-            END IF;
-
-            WHEN ACK_CHECK =>
-            IF BitDone = '1' THEN
-                ACK    <= SdaLatch;
-                StateN <= DONE;
-            ELSE
-                StateN <= ACK_CHECK;
-            END IF;
-
-            WHEN DONE =>
-            ByteDone <= '1';
-            ReadData <= DataReg;
-            StateN   <= IDLE;
-
-            WHEN OTHERS => StateN <= IDLE;
-
-        END CASE;
-    END PROCESS;
-END Behavioral;
+            StateN   <= SHIFT_BIT;
+            when SHIFT_BIT =>
+            if BitDone = '1' then
+                DataReg     <= DataReg(6 downto 0) & SdaLatch;
+                TxBit       <= DataReg(6);
+                StateN      <= SHIFT_BIT_WAIT;
+            else StateN <= SHIFT_BIT;
+            end if;
+            when SHIFT_BIT_WAIT =>
+            BitStart <= '1';
+            if Cnt = 0 then
+                DriveEn     <= rw;
+                StateN      <= ACK_CHECK;
+            else StateN <= SHIFT_BIT;
+            end if;
+            when ACK_CHECK =>
+            if BitDone = '1' then
+                ACK         <= SdaLatch;
+                StateN      <= DONE;
+            else StateN <= ACK_CHECK;
+            end if;
+            when DONE =>
+            ByteDone              <= '1';
+            ReadData              <= DataReg;
+            StateN                <= IDLE;
+            when others => StateN <= IDLE;
+        end case;
+    end process;
+end Behavioral;

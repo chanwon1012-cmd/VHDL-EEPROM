@@ -28,10 +28,10 @@ ENTITY I2cMaster IS
         Nack_err : OUT STD_LOGIC;
 
         -- Eeprom
-        SdaInIN : IN STD_LOGIC;
-        SclOut  : OUT STD_LOGIC;
-        SdaOut  : OUT STD_LOGIC;
-        SdaOe   : OUT STD_LOGIC
+        SdaIn  : IN STD_LOGIC;
+        SclOut : OUT STD_LOGIC;
+        SdaOut : OUT STD_LOGIC;
+        SdaOe  : OUT STD_LOGIC
     );
 END I2cMaster;
 
@@ -45,6 +45,12 @@ ARCHITECTURE Behavioral OF I2cMaster IS
     SIGNAL I2cStart  : STD_LOGIC;
     SIGNAL I2cStop   : STD_LOGIC;
     SIGNAL ByteDone  : STD_LOGIC;
+    SIGNAL ByteStart : STD_LOGIC;
+    SIGNAL rw        : STD_LOGIC;
+    SIGNAL ACK       : STD_LOGIC;
+    SIGNAL TxBit     : STD_LOGIC;
+    SIGNAL DriveEn   : STD_LOGIC;
+    SIGNAL SdaLatch  : STD_LOGIC;
     SIGNAL WriteData : STD_LOGIC_VECTOR(7 DOWNTO 0);
     SIGNAL ReadData  : STD_LOGIC_VECTOR(7 DOWNTO 0);
 
@@ -80,8 +86,8 @@ ARCHITECTURE Behavioral OF I2cMaster IS
             SysClk : IN STD_LOGIC;
             nRST   : IN STD_LOGIC;
             -- I2c
-            ByteStart : IN STD_LOGIC;
             rw        : IN STD_LOGIC;
+            ByteStart : IN STD_LOGIC;
             WriteData : IN STD_LOGIC_VECTOR (7 DOWNTO 0);
             -- BitCtrl
             BitDone  : IN STD_LOGIC;
@@ -102,9 +108,6 @@ ARCHITECTURE Behavioral OF I2cMaster IS
 BEGIN
 
     BitCtrl_Inst : BitCtrl
-    GENERIC MAP(
-        generics
-    )
     PORT MAP(
         SysClk   => SysClk,
         nRST     => nRST,
@@ -113,11 +116,11 @@ BEGIN
         I2cStop  => I2cStop,
         DriveEn  => DriveEn,
         TxBit    => TxBit,
-        SdaIn    =>
-        SclOut   =>
-        SdaOe    =>
-        SdaOut   =>
-        BitDone  => Bitdone
+        SdaIn    => SdaIn,
+        SdaOe    => SdaOe,
+        SdaOut   => SdaOut,
+        SclOut   => SclOut,
+        BitDone  => Bitdone,
         SdaLatch => SdaLatch
     );
 
@@ -125,13 +128,13 @@ BEGIN
     PORT MAP(
         SysClk    => SysClk,
         nRST      => nRST,
-        ByteStart =>
-        rw        =>
-        WriteData => WriteData
+        ByteStart => ByteStart,
+        rw        => rw,
+        WriteData => WriteData,
         BitDone   => BitDone,
         SdaLatch  => SdaLatch,
         ByteDone  => ByteDone,
-        ReadData  => ReadData,
+        ReadData  => Rdata,
         Ack       => Ack,
         TxBit     => TxBit,
         BitStart  => BitStart,
@@ -147,9 +150,17 @@ BEGIN
         END IF;
     END PROCESS;
 
-    PROCESS (ALL)
+    PROCESS (StateC, Run, Cmd, Addr, Wdata, BitDone, ACK, ByteDone)
     BEGIN
-        StateN <= StateC;
+        StateN    <= StateC;
+        Busy      <= '0';
+        Done      <= '0';
+        I2cStart  <= '0';
+        ByteStart <= '0';
+        rw        <= '0';
+        I2cStop   <= '0';
+        WriteData <= (OTHERS => '0');
+
         CASE(StateC) IS
 
             WHEN IDLE =>
@@ -159,42 +170,53 @@ BEGIN
             END IF;
 
             WHEN START =>
+            Busy     <= '1';
+            I2cStart <= '1';
             IF BitDone = '1' THEN
-                Busy     <= '1';
-                I2cStart <= '1';
-                StateN   <= CTRL_BYTE;
+                ByteStart <= '1';
+                rw        <= '0';
+                StateN    <= CTRL_BYTE;
             END IF;
 
             WHEN CTRL_BYTE =>
-            Busy      <= '1';
-            WriteData <= X"A0";
-            IF ACK = '1' AND ByteDone = '1' THEN
-                StateN <= ADDR_H;
-            ELSIF Cmd = b"10" THEN
+            Busy <= '1';
+            IF Cmd = b"10" THEN
                 StateN <= CTRL_BYTE_R;
+            ELSE
+                ByteStart <= '1';
+                WriteData <= X"A0";
+                rw        <= '0';
+                IF ACK = '1' AND ByteDone = '1' THEN
+                    StateN <= ADDR_H;
+                END IF;
             END IF;
 
             WHEN ADDR_H =>
+            ByteStart <= '1';
+            WriteData <= '0' & Addr(14 DOWNTO 8);
+            rw        <= '0';
             IF ACK = '1' AND ByteDone = '1' THEN
-                Busy      <= '1';
-                WriteData <= Addr(14 DOWNTO 8);
-                StateN    <= ADDR_L;
+                Busy   <= '1';
+                StateN <= ADDR_L;
             END IF;
 
             WHEN ADDR_L =>
             Busy      <= '1';
+            ByteStart <= '1';
             WriteData <= Addr(7 DOWNTO 0);
             IF ACK = '1' AND Cmd = b"00" AND ByteDone = '1' THEN
                 StateN <= DATA;
             ELSIF ACK = '1' AND Cmd = b"01" AND ByteDone = '1' THEN
-                StateN <= REP_START;
+                I2cStart <= '1';
+                StateN   <= REP_START;
             END IF;
 
             WHEN DATA =>
+            ByteStart <= '1';
+            WriteData <= Wdata;
             IF ACK = '1' AND ByteDone = '1' THEN
-                Busy      <= '1';
-                WriteData <= Wdata;
-                StateN    <= STOP;
+                Busy   <= '1';
+                StateN <= STOP;
             END IF;
 
             WHEN STOP =>
@@ -207,22 +229,27 @@ BEGIN
 
             WHEN REP_START =>
             IF BitDone = '1' THEN
-                Busy   <= '1';
-                StateN <= CTRL_BYTE_R;
+                rw        <= '0';
+                ByteStart <= '1';
+                Busy      <= '1';
+                StateN    <= CTRL_BYTE_R;
             END IF;
 
             WHEN CTRL_BYTE_R =>
+            rw        <= '0';
+            ByteStart <= '1';
+            WriteData <= X"A1";
             IF ACK = '1' AND ByteDone = '1' THEN
-                Busy      <= '1';
-                WriteData <= x"A1";
-                StateN    <= READ_DATA;
+                Busy   <= '1';
+                StateN <= READ_DATA;
             END IF;
 
             WHEN READ_DATA =>
+            ByteStart <= '1';
+            rw        <= '1';
             IF ACK = '1' AND ByteDone = '1' THEN
-                Busy     <= '1';
-                ReadData <= RDATA;
-                StateN   <= STOP;
+                Busy   <= '1';
+                StateN <= STOP;
             END IF;
 
             WHEN OTHERS => StateN <= IDLE;
