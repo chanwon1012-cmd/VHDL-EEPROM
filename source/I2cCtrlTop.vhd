@@ -14,6 +14,8 @@ use IEEE.NUMERIC_STD.all;
 entity I2cCtrlTop is
     port
     (
+        SysClk    : in std_logic;
+        nRST      : in std_logic;
         I2cStart  : in std_logic;
         I2cStop   : in std_logic;
         ByteStart : in std_logic;
@@ -22,7 +24,8 @@ entity I2cCtrlTop is
         SdaIn     : in std_logic;
 
         BitDone   : out std_logic;
-        ReadData  : out std_logic;
+        ByteDone  : out std_logic;
+        ReadData  : out std_logic_vector (7 downto 0);
         ACK       : out std_logic;
         SclOut    : out std_logic;
         SdaOut    : out std_logic;
@@ -31,6 +34,12 @@ entity I2cCtrlTop is
 end I2cCtrlTop;
 
 architecture Behavioral of I2cCtrlTop is
+
+    signal TxBit      : std_logic;
+    signal BitStart   : std_logic;
+    signal DriveEn    : std_logic;
+    signal SdaLatch   : std_logic;
+    signal BitDoneInt : std_logic;
 
     component BitCtrl is
         generic
@@ -102,26 +111,29 @@ begin
         SdaOe    => SdaOe,
         SdaOut   => SdaOut,
         SclOut   => SclOut,
-        BitDone  => Bitdone,
+        BitDone  => BitDoneInt,
         SdaLatch => SdaLatch
     );
 
     ByteCtrl_Inst : ByteCtrl
     port
-    map(
+    map
+    (
     SysClk    => SysClk,
     nRST      => nRST,
     ByteStart => ByteStart,
     rw        => rw,
     WriteData => WriteData,
-    BitDone   => BitDone,
+    BitDone   => BitDoneInt,
     SdaLatch  => SdaLatch,
     ByteDone  => ByteDone,
-    ReadData  => Rdata,
+    ReadData  => ReadData,
     Ack       => Ack,
     TxBit     => TxBit,
     BitStart  => BitStart,
     DriveEn   => DriveEn
     );
+
+    BitDone <= BitDoneInt;
 
 end Behavioral;

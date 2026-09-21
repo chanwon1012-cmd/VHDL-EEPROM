@@ -11,7 +11,7 @@ USE work.array_def.ALL;
 --library UNISIM;
 --use UNISIM.VComponents.all;
 
-ENTITY I2cMaster IS
+ENTITY EepromCtrlTop IS
     PORT (
         -- System
         SysClk : IN STD_LOGIC;
@@ -33,9 +33,9 @@ ENTITY I2cMaster IS
         SdaOut : OUT STD_LOGIC;
         SdaOe  : OUT STD_LOGIC
     );
-END I2cMaster;
+END EepromCtrlTop;
 
-ARCHITECTURE Behavioral OF I2cMaster IS
+ARCHITECTURE Behavioral OF EepromCtrlTop IS
 
     TYPE State IS (IDLE, START, CTRL_BYTE, ADDR_H, ADDR_L, DATA, STOP, REP_START, CTRL_BYTE_R, READ_DATA);
     SIGNAL StateC, StateN : State;
@@ -54,92 +54,17 @@ ARCHITECTURE Behavioral OF I2cMaster IS
     SIGNAL WriteData : STD_LOGIC_VECTOR(7 DOWNTO 0);
     SIGNAL ReadData  : STD_LOGIC_VECTOR(7 DOWNTO 0);
 
-    COMPONENT BitCtrl IS
-        GENERIC (
-            T_LOW    : INTEGER := 90;
-            T_SETUP  : INTEGER := 5;
-            T_HIGH   : INTEGER := 30;
-            T_HD_STA : INTEGER := 30;
-            T_SU_STO : INTEGER := 30
+ 
+    component I2cCtrlTop is
+        port (
+            clk   : in std_logic;
+            reset : in std_logic;
+            
         );
-        PORT (
-            SysClk : IN STD_LOGIC;
-            nRST   : IN STD_LOGIC;
-
-            BitStart : IN STD_LOGIC;
-            I2cStart : IN STD_LOGIC;
-            I2cStop  : IN STD_LOGIC;
-            DriveEn  : IN STD_LOGIC;
-            TxBit    : IN STD_LOGIC;
-            SdaIn    : IN STD_LOGIC;
-
-            SclOut   : OUT STD_LOGIC;
-            SdaOe    : OUT STD_LOGIC;
-            SdaOut   : OUT STD_LOGIC;
-            BitDone  : OUT STD_LOGIC;
-            SdaLatch : OUT STD_LOGIC
-        );
-    END COMPONENT;
-
-    COMPONENT ByteCtrl IS
-        PORT (
-            SysClk : IN STD_LOGIC;
-            nRST   : IN STD_LOGIC;
-            -- I2c
-            rw        : IN STD_LOGIC;
-            ByteStart : IN STD_LOGIC;
-            WriteData : IN STD_LOGIC_VECTOR (7 DOWNTO 0);
-            -- BitCtrl
-            BitDone  : IN STD_LOGIC;
-            SdaLatch : IN STD_LOGIC;
-
-            -- Output
-            -- I2c
-            ByteDone : OUT STD_LOGIC;
-            ReadData : OUT STD_LOGIC_VECTOR (7 DOWNTO 0);
-            Ack      : OUT STD_LOGIC;
-            -- BitCtrl
-            TxBit    : OUT STD_LOGIC;
-            BitStart : OUT STD_LOGIC;
-            DriveEn  : OUT STD_LOGIC
-        );
-    END COMPONENT;
+    end component;
 
 BEGIN
 
-    BitCtrl_Inst : BitCtrl
-    PORT MAP(
-        SysClk   => SysClk,
-        nRST     => nRST,
-        BitStart => BitStart,
-        I2cStart => I2cStart,
-        I2cStop  => I2cStop,
-        DriveEn  => DriveEn,
-        TxBit    => TxBit,
-        SdaIn    => SdaIn,
-        SdaOe    => SdaOe,
-        SdaOut   => SdaOut,
-        SclOut   => SclOut,
-        BitDone  => Bitdone,
-        SdaLatch => SdaLatch
-    );
-
-    ByteCtrl_Inst : ByteCtrl
-    PORT MAP(
-        SysClk    => SysClk,
-        nRST      => nRST,
-        ByteStart => ByteStart,
-        rw        => rw,
-        WriteData => WriteData,
-        BitDone   => BitDone,
-        SdaLatch  => SdaLatch,
-        ByteDone  => ByteDone,
-        ReadData  => Rdata,
-        Ack       => Ack,
-        TxBit     => TxBit,
-        BitStart  => BitStart,
-        DriveEn   => DriveEn
-    );
 
     PROCESS (SysClk, nRST)
     BEGIN
