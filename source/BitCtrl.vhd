@@ -148,7 +148,9 @@ BEGIN
                 SdaOe  <= '0';
                 SdaOut <= '1';
             END IF;
+
             WHEN OTHERS => StateN <= IDLE;
+            
         END CASE;
     END PROCESS;
 END Behavioral;

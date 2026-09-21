@@ -1,17 +1,17 @@
 <mxfile host="Electron">
   <diagram name="페이지-1" id="9V5dQJHqGsca6zQOnivY">
-    <mxGraphModel dx="1883" dy="1878" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+    <mxGraphModel dx="1998" dy="1921" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="JW0om-KyLrGHz_97pL3v-29" parent="1" style="rounded=1;whiteSpace=wrap;html=1;" value="&lt;font style=&quot;font-size: 22px;&quot;&gt;&lt;b style=&quot;&quot;&gt;I2cMaster&lt;/b&gt;&lt;/font&gt;" vertex="1">
-          <mxGeometry height="390" width="965" x="440" y="-540" as="geometry" />
-        </mxCell>
         <mxCell id="L-cYnC-quuqMPKGWzv3v-2" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeWidth=3;" value="" vertex="1">
           <mxGeometry height="560" width="1080" x="410" y="-660" as="geometry" />
         </mxCell>
-        <mxCell id="2aVRZ0LYFJiC1XkF29FR-1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeWidth=3;movable=0;resizable=0;rotatable=0;deletable=0;editable=0;locked=1;connectable=0;" value="" vertex="1">
+        <mxCell id="2aVRZ0LYFJiC1XkF29FR-1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeWidth=3;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" value="" vertex="1">
           <mxGeometry height="1040" width="1400" x="210" y="-1080" as="geometry" />
+        </mxCell>
+        <mxCell id="JW0om-KyLrGHz_97pL3v-29" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=left;" value="&lt;font style=&quot;font-size: 22px;&quot;&gt;&lt;b style=&quot;&quot;&gt;I2cCtrlTop&lt;/b&gt;&lt;/font&gt;" vertex="1">
+          <mxGeometry height="240" width="965" x="440" y="-390" as="geometry" />
         </mxCell>
         <mxCell id="2aVRZ0LYFJiC1XkF29FR-3" parent="1" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;" value="List" vertex="1">
           <mxGeometry height="120" width="140" x="-210" y="-680" as="geometry" />
@@ -175,9 +175,6 @@
         </mxCell>
         <mxCell id="L-cYnC-quuqMPKGWzv3v-3" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;b style=&quot;&quot;&gt;&lt;font style=&quot;font-size: 25px;&quot;&gt;EepRomCtrlTop&lt;/font&gt;&lt;/b&gt;" vertex="1">
           <mxGeometry height="30" width="60" x="1180" y="-660" as="geometry" />
-        </mxCell>
-        <mxCell id="RNH5KfX1_Zw5KMiaAvig-52" parent="1" style="triangle;whiteSpace=wrap;html=1;shapeInside=1;direction=south;" value="" vertex="1">
-          <mxGeometry height="18" width="30" x="520" y="-540" as="geometry" />
         </mxCell>
         <mxCell id="RNH5KfX1_Zw5KMiaAvig-54" parent="1" style="triangle;whiteSpace=wrap;html=1;shapeInside=1;direction=south;" value="" vertex="1">
           <mxGeometry height="18" width="30" x="420" y="-658" as="geometry" />

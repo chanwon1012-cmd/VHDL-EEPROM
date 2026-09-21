@@ -1,0 +1,27 @@
+1. ByteCtrl의 BitStart를 BitDone이랑 같은 클럭에 동시에 재트리거하던 
+구조가 실제 BitCtrl과 델타사이클 레이스를 일으켜서 두 번째 비트부터 절대 
+못 넘어가던 오류 발견  
+— SHIFT_BIT_WAIT이라는 별도 상태로 분리해서 해결 
+(이게 이번 세션에서 가장 오래 걸린 트러블슈팅)
+
+
+2. I2cMaster의 START 상태에서 I2cStart를 BitDone='1' 안에서만 세팅해서 
+서로가 서로를 기다리는 순환 데드락 
+(트리거 신호를 완료 신호 뒤에 숨겨놓은 구조적 실수)
+
+
+3. Byte + ACK 에 타이밍에 맞게 bit 8개는 Shift_BIT에서 받고 ACK 신호는 ACK_CHECK에서 받아야함
+  Cnt를 0 ~ 8로 해야함
+
+
+4. I2cMaster의 CTRL_BYTE에서 ACK/ByteDone 게이트 안에 StateN<=ADDR_H를 넣어놓고도
+바깥에 조건 없는 StateN<=ADDR_H를 한 줄 더 남겨놔서, 0xA0 전송이 끝나기도 전에
+매 클럭 무조건 ADDR_H로 넘어가버리던 버그
+— 조건 없는 중복 대입 줄 삭제, ACK/ByteDone 게이트 안에서만 전환하도록 수정
+
+
+
+10. Ack 신호가 ByteDone보다 한 클럭 먼저 꺼져서(ACK_CHECK에서만 잠깐 뜨고 DONE에서는
+디폴트로 꺼짐) I2cMaster의 "ACK='1' AND ByteDone='1'" 동시조건이 절대 안 맞던 문제
+— Ack를 DataReg처럼 취급: 디폴트 목록에서 제거하고 LOAD에서만 명시적으로 '0' 리셋,
+  ACK_CHECK에서 세팅된 값이 DONE까지 그대로 유지되도록 수정
